@@ -1,5 +1,6 @@
-# -- encoding: utf-8 --
-from __future__ import unicode_literals
+#!usr/bin/env python
+# -*- coding:utf-8 _*-
+
 import re
 import copy
 from sys import exit
