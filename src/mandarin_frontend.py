@@ -1,14 +1,13 @@
-#!/usr/bin/python3
+#!usr/bin/env python
+# -*- coding:utf-8 _*-
 
-# -*- encoding:utf-8 -*-
-
-from __future__ import unicode_literals
 import re
 import os
 from jieba import posseg
 from labcnp import LabGenerator
 from labformat import tree
 from txt2pinyin import txt2pinyin
+
 
 
 def _adjust(prosody_txt):
@@ -51,7 +50,6 @@ def _adjust(prosody_txt):
     if rhythms[-1] != '#4':
         rhythms.append('#4')
     rhythms = [x for x in rhythms if x != '']
-    # print(rhythms)
     return (words, poses, rhythms)
 
 
@@ -84,17 +82,21 @@ def txt2label(txt, sfsfile=None, style='default'):
     assert style == 'default', 'Currently only default style is support in txt2label'
 
     # delete all character which is not number && alphabet && chinese word
-    txt = re.sub(r'(?!#)\W', '', txt)
 
     # If txt with prosody mark, use prosody mark,
     # else use jieba position segmetation
-    if '#' in txt:
-        words, poses, rhythms = _adjust(txt)
+    puncs = ['”', '。', '，', '、', '？', '：', '！', '…', '—', '）', '；', '’', '!', ',', '.', ':', ';', '“', '（', '‘']
+    tmp_txt = txt
+    for pu in puncs:
+        tmp_txt = tmp_txt.replace(pu, '')
+    if tmp_txt.find('#') != -1:
+        words, poses, rhythms = _adjust(tmp_txt)
     else:
         txt = re.sub('[,.，。]', '#4', txt)
         words = []
         poses = []
-        for word, pos in posseg.cut(txt):
+        tmplist = iter(posseg.cut(tmp_txt))
+        for word, pos in tmplist:
             words.append(word)
             poses.append(pos[0])
         rhythms = ['#0'] * (len(words) - 1)
@@ -149,34 +151,38 @@ def txt2label(txt, sfsfile=None, style='default'):
 
 def _txt_preprocess(txtfile, output_path):
     # 去除所有标点符号(除非是韵律标注#1符号)，报错，如果txt中含有数字和字母(报错并跳过）
+    # 补充标点符号
+    puncs = ['”', '。', '，', '、', '？', '：', '！', '…', '—', '）', '；', '’', '!', ',', '.', ':', ';', '“', '（', '‘']
     with open(txtfile) as fid:
         txtlines = [x.strip() for x in fid.readlines()]
     valid_txtlines = []
     error_list = []  # line which contain number or alphabet
-    pattern = re.compile('(?!#(?=\d))(?![，。,.])[\W]')
     for line in txtlines:
         num, txt = line.split(' ', 1)
         if bool(re.search('[A-Za-z]', txt)) or bool(
                 re.search('(?<!#)\d', txt)):
             error_list.append(num)
         else:
-            txt = re.sub('[,.，。]', '#4', txt)
-            txt = pattern.sub('', txt)
+            tmp_txt = txt
+            for pu in puncs:
+                tmp_txt = tmp_txt.replace(pu, '')
             # 去除除了韵律标注'#'之外的所有非中文文本, 数字, 英文字符符号
-            valid_txtlines.append(num + ' ' + txt)
+            valid_txtlines.append(num + ' ' + tmp_txt)
     if error_list:
         for item in error_list:
             print('line %s contain number and alphabet!!' % item)
         with open(os.path.join(output_path, 'error.log'), 'a+') as fid:
             for item in error_list:
                 fid.write('line %s contain number and alphabet!!  \n' % item)
-
+    print(valid_txtlines)
     return valid_txtlines
 
 
 if __name__ == '__main__':
-    txt = '继续把建设有中国特色社会主义事业推向前进'
-    print(list(txt2label(txt)))
+    txt = '绿是阳春烟景大块文章的底色四月的林峦更是绿得鲜活秀媚诗意盎然'
+    sfsfile = r'/home/shaopf/study/MTTS/data/thchs30_250_demo/output/sfs/A11_0.sfs'
+    for i in list(txt2label(txt)):
+        print(i)
     """
     import argparse
     parser = argparse.ArgumentParser(description="convert mandarin_txt to label for merlin.")
