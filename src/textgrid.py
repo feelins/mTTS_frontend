@@ -71,7 +71,8 @@ def read_textgrid(filename):
 
 def _find_tiers(interval_lines, tier_lines, tiers):
     tier_pairs = zip(tier_lines, tiers)
-    cur_tline, cur_tier = next(tier_pairs) 
+    tier_pairs = iter(tier_pairs)
+    cur_tline, cur_tier = next(tier_pairs)
     next_tline, next_tier = next(tier_pairs, (None, None))
     tiers = []
     for il in interval_lines:
