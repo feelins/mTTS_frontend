@@ -1,5 +1,6 @@
-# -*- encoding: UTF-8 -*-
-from __future__ import unicode_literals
+#!usr/bin/env python
+# -*- coding:utf-8 _*-
+
 import sys
 import re
 from pypinyin import pinyin, Style, load_phrases_dict
