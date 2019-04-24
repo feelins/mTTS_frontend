@@ -1,17 +1,15 @@
 #!usr/bin/env python
 # -*- coding:utf-8 _*-
 
-import sys
-import re
 from pypinyin import pinyin, Style, load_phrases_dict
 
 consonant_list = ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k',
                   'h', 'j', 'q', 'x', 'zh', 'ch', 'sh', 'r', 'z',
                   'c', 's', 'y', 'w']
 
-TRANSFORM_DICT = {'ju':'jv', 'qu':'qv', 'xu':'xv', 'zi':'zic',
-                  'ci':'cic', 'si':'sic', 'zhi':'zhih', 
-                  'chi':'chih', 'shi':'shih', 'ri':'rih',
+TRANSFORM_DICT = {'ju':'jv', 'qu':'qv', 'xu':'xv', 'zi':'zii',
+                  'ci':'cii', 'si':'sii', 'zhi':'zhiii',
+                  'chi':'chiii', 'shi':'shiii', 'ri':'riii',
                   'yuan':'yvan', 'yue':'yve', 'yun':'yvn',
                   'quan':'qvan','xuan':'xvan','juan':'jvan',
                   'qun':'qvn','xun':'xvn', 'jun':'jvn',
