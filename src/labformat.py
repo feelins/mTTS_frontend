@@ -150,7 +150,7 @@ def tree(words, rhythms, syllables, poses, phs_type=None):
 
     #print('----show tree----')
     #show([newNode], 0)
-    # show(tree_init['rhythm4'], 0)
+    #show(tree_init['rhythm4'], 0)
 
     root_node = tree_init['#4'][0]
     return add_head_middle_tail_silence(root_node, phs_type)
