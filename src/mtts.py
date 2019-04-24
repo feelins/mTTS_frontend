@@ -1,3 +1,6 @@
+#!usr/bin/env python
+# -*- coding:utf-8 _*-
+
 import os
 import re
 import logging
@@ -12,18 +15,20 @@ consonant = [
 
 
 def _pre_pinyin_setting():
-    ''' fix pinyin error'''
+    """ fix pinyin error???"""
     load_phrases_dict({'嗯': [['ēn']]})
     load_phrases_dict({'风云变幻': [['fēng'], ['yún'], ['bià'], ['huàn']]})
     load_phrases_dict({'不破不立': [['bù'], ['pò'], ['bù'], ['lì']]})
 
 
 def _add_lab(txtlines, wav_dir_path):
+    """gen label file for montreal-alignment from TXT by PyPinyin"""
     logger = logging.getLogger('mtts')
     for line in txtlines:
         numstr, txt = line.split(' ')
         txt = re.sub('#\d', '', txt)
-        pinyin_list = pinyin(txt, style=Style.TONE3)
+        pinyin_list = pinyin(txt.decode("utf-8"), style=Style.TONE3)
+        #pinyin_list = pinyin(txt, style=Style.TONE3)
         new_pinyin_list = []
         for item in pinyin_list:
             if not item:
@@ -35,12 +40,13 @@ def _add_lab(txtlines, wav_dir_path):
                 phone = item[0]
             new_pinyin_list.append(phone)
         lab_file = os.path.join(wav_dir_path, numstr + '.lab')
+        logger.info('create lab file %s' % (lab_file))
         with open(lab_file, 'w') as oid:
             oid.write(' '.join(new_pinyin_list))
 
 
 def _add_pinyin(txtlines, output_path):
-    ''' txt2pinyin in one file '''
+    """txt2pinyin in one file"""
     logger = logging.getLogger('mtts')
     all_pinyin = []
     for line in txtlines:
@@ -71,21 +77,24 @@ def _txt_preprocess(txtfile, output_path):
     with open(txtfile) as fid:
         txtlines = [x.strip() for x in fid.readlines()]
     valid_txtlines = []
+    # 补充标点符号
+    puncs = ['”', '。', '，', '、', '？', '：', '！', '…', '—', '）', '；', '’', '!', ',', '.', ':', ';', '“', '（', '‘']
     error_list = []  # line which contain number or alphabet
-    pattern = re.compile('(?!#(?=\d))[\W]')
     for line in txtlines:
         num, txt = line.split(' ', 1)
         if bool(re.search('[A-Za-z]', txt)) or bool(
                 re.search('(?<!#)\d', txt)):
             error_list.append(num)
         else:
-            txt = re.sub('[,.，。]', '#4', txt)
-            txt = pattern.sub('', txt)
+            tmp_txt = txt
+            for pu in puncs:
+                tmp_txt = tmp_txt.replace(pu, '')
             # 去除除了韵律标注'#'之外的所有非中文文本, 数字, 英文字符符号
-            if txt:
-                valid_txtlines.append(num + ' ' + txt)
+            if tmp_txt:
+                valid_txtlines.append(num + ' ' + tmp_txt)
+                logger.info('txt_processing file %s' % (num))
             else:
-                logger.warning('txt error, check your txt %ts' % num)
+                logger.warning('txt error, check your txt %s' % (num))
     if error_list:
         for item in error_list:
             logger.warning(
@@ -95,7 +104,7 @@ def _txt_preprocess(txtfile, output_path):
 
 
 def _standard_sfs(csv_list):
-    '''Change csv_list like "0 0.21 sil phones" to standard format like "2100000 s" '''
+    """Change csv_list like "0 0.21 sil phones" to standard format like "2100000 s" """
 
     def change2absd(phone, csv_list):
         if phone in consonant:
@@ -115,10 +124,11 @@ def _standard_sfs(csv_list):
 
 
 def _mfa_align(txtlines, wav_dir_path, output_path, acoustic_model_path):
+    """montreal forced alignment"""
     logger = logging.getLogger('mtts')
     logger.info('Start montreal forced align')
     base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    os.makedirs('%s/wav' % output_path, exist_ok=True)
+    os.makedirs('%s/wav' % output_path)
     wav_dir_real_path = os.path.realpath(wav_dir_path)
     symbolic_path = '%s/wav/mandarin_voice' % output_path
     if not os.path.exists(symbolic_path):
@@ -151,6 +161,7 @@ def _textgrid2sfs(txtlines, output_path):
         sfs_file = os.path.join(sfs_path, numstr + '.sfs')
 
         if os.path.exists(textgrid_file):
+            logger.info('textgrid2sfs processing file %s' % (textgrid_file))
             # textgrid to csv
             tgrid = tg.read_textgrid(textgrid_file)
             tg.write_csv(tgrid, csv_file, sep=' ', header=False, meta=False)
@@ -186,15 +197,16 @@ def _sfs2label(txtlines, output_path):
         numstr, txt = line.split()
         if numstr in sfs_list:
             process_num += 1
-            logger.info('processing %s, file %s' % (process_num, numstr))
             sfs_file = os.path.join(sfs_path, numstr + '.sfs')
             label_file = os.path.join(label_path, numstr + '.lab')
 
             try:
                 label_line = txt2label(txt, sfsfile=sfs_file)
+                logger.info('sfs2label processing file %s' % (sfs_file))
             except Exception:
                 logger.error(
                     'Error at %s, please check your txt %s' % (numstr, txt))
+                #exit(0)
             else:
                 with open(label_file, 'w') as oid:
                     for item in label_line:
@@ -211,10 +223,10 @@ def _set_logger(output_path):
     console_handler.setLevel(logging.INFO)
 
     log_path = os.path.join(output_path, 'mtts.log')
-    file_handler = logging.FileHandler(log_path, mode='w')
+    file_handler = logging.FileHandler(log_path, mode='a')
     file_handler.setFormatter(
         logging.Formatter('%(asctime)s %(levelname)-8s: %(message)s'))
-    file_handler.setLevel(logging.WARNING)
+    file_handler.setLevel(logging.DEBUG)
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
