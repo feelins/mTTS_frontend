@@ -64,7 +64,7 @@ def read_textgrid(filename):
             tier_lines.append(i)
             tiers.append(line.split('"')[-2]) 
 
-    interval_tiers =  _find_tiers(interval_lines, tier_lines, tiers)
+    interval_tiers = _find_tiers(interval_lines, tier_lines, tiers)
     assert len(interval_lines) == len(interval_tiers)
     return [_build_entry(i, content, t) for i, t in zip(interval_lines, interval_tiers)]
 
@@ -85,6 +85,7 @@ def _find_tiers(interval_lines, tier_lines, tiers):
 
 def _read(f):
     return [x.strip() for x in f.readlines()]
+
 
 def write_csv(textgrid_list, filename=None, sep=",", header=True, save_gaps=False, meta=True):
     """
@@ -113,7 +114,8 @@ def write_csv(textgrid_list, filename=None, sep=",", header=True, save_gaps=Fals
     if meta:
         with open(filename + ".meta", "w") as metaf:
             metaf.write("""---\nunits: s\ndatatype: 1002\n""")
-        
+
+
 def _build_entry(i, content, tier):
     """
     takes the ith line that begin an interval and returns
