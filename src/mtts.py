@@ -10,8 +10,7 @@ from mandarin_frontend import txt2label
 
 consonant = [
     'b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'zh',
-    'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w'
-]
+    'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w']
 
 
 def _pre_pinyin_setting():
@@ -206,7 +205,6 @@ def _sfs2label(txtlines, output_path):
             except Exception:
                 logger.error(
                     'Error at %s, please check your txt %s' % (numstr, txt))
-                #exit(0)
             else:
                 with open(label_file, 'w') as oid:
                     for item in label_line:
