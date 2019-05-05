@@ -108,6 +108,11 @@ def write_csv(textgrid_list, filename=None, sep=",", header=True, save_gaps=Fals
                 f.write(row + "\n")
             else:
                 print(row)
+        # row = sep.join(str(x) for x in list(entry))
+        # if filename:
+        #     f.write(row + "\n")
+        # else:
+        #     print(row)
     if filename:
         f.flush()
         f.close()
@@ -125,7 +130,7 @@ def _build_entry(i, content, tier):
     if content[i].startswith("intervals ["):
         offset = 1
     else:
-        offset = 0 # for "point" objects
+        offset = 0  # for "point" objects
     stop = _get_float_val(content[i + 1 + offset])
     label = _get_str_val(content[i + 2 + offset])
     return Entry(start=start, stop=stop, name=label, tier=tier)
@@ -163,5 +168,8 @@ def textgrid2csv():
 
 
 if __name__ == "__main__":
-    textgrid2csv()
-
+    #textgrid2csv()
+    grid_file = r'/home/shaopf/study/mTTS_frontend/data/thchs30_250_demo/output/000001.TextGrid'
+    csv_file = r'/home/shaopf/study/mTTS_frontend/data/thchs30_250_demo/output/000001.csv'
+    tgrid = read_textgrid(grid_file)
+    write_csv(tgrid, csv_file, sep=' ', header=False, meta=False)
