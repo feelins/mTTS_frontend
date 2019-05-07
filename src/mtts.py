@@ -6,7 +6,7 @@ import re
 import logging
 from pypinyin import pinyin, Style, load_phrases_dict
 import textgrid as tg
-from mandarin_frontend import txt2label, _txt2label
+from mandarin_frontend import txt2label
 
 consonant = [
     'b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'zh',
@@ -30,29 +30,6 @@ def _add_lab(txtlines, wav_dir_path):
         txt = re.sub('#\d', '', txt)
         pinyin_list = pinyin(txt.decode("utf-8"), style=Style.TONE3)
         #pinyin_list = pinyin(txt, style=Style.TONE3)
-        new_pinyin_list = []
-        for item in pinyin_list:
-            if not item:
-                logger.warning(
-                    '{file_num} do not generate right pinyin'.format(numstr))
-            if not item[0][-1].isdigit():
-                phone = item[0] + '5'
-            else:
-                phone = item[0]
-            new_pinyin_list.append(phone)
-        lab_file = os.path.join(wav_dir_path, numstr + '.lab')
-        logger.info('create lab file %s' % (lab_file))
-        with open(lab_file, 'w') as oid:
-            oid.write(' '.join(new_pinyin_list))
-
-def _gen_lab(pinyin_file, wav_dir_path):
-    """gen label file for montreal-alignment from TXT by PyPinyin"""
-    logger = logging.getLogger('mtts')
-    for line in txtlines:
-        numstr, txt = line.split(' ')
-        txt = re.sub('#\d', '', txt)
-        pinyin_list = pinyin(txt.decode("utf-8"), style=Style.TONE3)
-        # pinyin_list = pinyin(txt, style=Style.TONE3)
         new_pinyin_list = []
         for item in pinyin_list:
             if not item:
@@ -130,28 +107,33 @@ def _txts_preprocess(txtfile, output_path):
 def _txt_preprocess(txtline):
     """remove all the punctuations of one text line"""
     logger = logging.getLogger('mtts')
-    valid_txtline = ''
-    # 补充标点符号
+    with open(txtfile) as fid:
+        txtlines = [x.strip() for x in fid.readlines()]
+    valid_txtlines = []
     error_list = []  # line which contain number or alphabet
-    if bool(re.search('[A-Za-z]', txtline)) or bool(
-            re.search('(?<!#)\d', txtline)):
-        error_list.append(txtline)
-    else:
-        tmp_txt = txtline
-        for pu in puncs:
-            tmp_txt = tmp_txt.replace(pu, '')
-        # 去除除了韵律标注'#'之外的所有非中文文本, 数字, 英文字符符号
-        if tmp_txt:
-            valid_txtline = tmp_txt
-            logger.info('txt_processing file %s' % (txtline))
+    pattern = re.compile('(?!#(?=\d))[\W]')
+    for line in txtlines:
+        num, txt = line.split(' ', 1)
+        txt = txt.decode('utf-8')
+        print(txt)
+        if bool(re.search('[A-Za-z]', txt)) or bool(
+                re.search('(?<!#)\d', txt)):
+            error_list.append(num)
         else:
-            logger.warning('txt error, check your txt %s' % (txtline))
-
+            txt = re.sub('[,.，。]', '#4', txt)
+            txt = pattern.sub('', txt)
+            # 去除除了韵律标注'#'之外的所有非中文文本, 数字, 英文字符符号
+            if txt:
+                valid_txtlines.append(num + ' ' + txt)
+                print(txt)
+            else:
+                logger.warning('txt error, check your txt %s' % num)
     if error_list:
         for item in error_list:
             logger.warning(
                 'Line %s contain number and alphabet! Skip this txt' % item)
-    return valid_txtline
+
+    return valid_txtlines
 
 
 def _standard_sfs(csv_list):
@@ -184,7 +166,8 @@ def _mfa_align(txtlines, wav_dir_path, output_path, acoustic_model_path):
     symbolic_path = '%s/wav/mandarin_voice' % output_path
     if not os.path.exists(symbolic_path):
         os.system('ln -s %s %s' % (wav_dir_real_path, symbolic_path))
-    mfa_align_path = '/home/shaopf/study/montreal-forced-aligner/montreal-forced-aligner_linux/montreal-forced-aligner/bin/mfa_align'
+    mfa_align_path = os.path.join(
+        base_dir, '/home/shaopf/study/montreal-forced-aligner/montreal-forced-aligner_linux/montreal-forced-aligner/bin/mfa_align')
     lexicon_path = os.path.join(base_dir, 'misc/mandarin_mtts.lexicon')
     acoustic_model_path = os.path.join(base_dir, acoustic_model_path)
 
@@ -234,39 +217,6 @@ def _textgrid2sfs(txtlines, output_path):
                 fid.write('--Miss: %s \n' % textgrid_file)
 
 
-def _textgrid2sfs_(textgrid_path):
-    """textgrid change to sfs file which contains time boundary and label"""
-    logger = logging.getLogger('mtts')
-    output_path = os.path.dirname(textgrid_path)
-    sfs_path = os.path.join(output_path, 'sfs')
-    csv_path = os.path.join(output_path, 'csv')
-    os.system('mkdir -p %s' % sfs_path)
-    os.system('mkdir -p %s' % csv_path)
-
-    for file_name in os.listdir(textgrid_path):
-        file_name = file_name.split('.')[0]
-        textgrid_file = os.path.join(textgrid_path, file_name + '.TextGrid')
-        csv_file = os.path.join(csv_path, file_name + '.csv')
-        sfs_file = os.path.join(sfs_path, file_name + '.sfs')
-
-        logger.info('textgrid2sfs processing file %s' % (textgrid_file))
-        # textgrid to csv
-        tgrid = tg.read_textgrid(textgrid_file)
-        tg.write_csv(tgrid, csv_file, sep=' ', header=False, meta=False)
-
-        # csv to sfs
-        total_list = []
-        with open(csv_file) as fid:
-            for line in fid.readlines():
-                # start, end, name, label = line.strip().split(' ')
-                csv_list = line.strip().split(' ')
-                if csv_list[3] == 'phones':
-                    total_list.append(_standard_sfs(csv_list))
-        with open(sfs_file, 'w') as fid:
-            for item in total_list:
-                fid.write(' '.join(item) + '\n')
-
-
 def _sfs2label(txtlines, output_path):
     logger = logging.getLogger('mtts')
     sfs_path = os.path.join(output_path, 'sfs')
@@ -296,57 +246,6 @@ def _sfs2label(txtlines, output_path):
                         oid.write(item + '\n')
 
 
-def _sfs2label_(txt_file, pos_file, pinyin_file, sfs_path, output_label_path):
-    """gen label"""
-    logger = logging.getLogger('mtts')
-    os.system('mkdir -p %s' % output_label_path)
-    txt_lines = {}
-    with open(txt_file) as fid:
-        all_txt_lines = [x.strip() for x in fid.readlines()]
-        for line in all_txt_lines:
-            file_name, txt = line.split('|')
-            txt = txt.replace(' ', '')
-            txt = txt.replace('#', '#0')  # words boundary, directly generated by HanLP or Jieba
-            txt = txt.replace('*', '#1')  # prosody words boundary(prosody phrase)
-            txt = txt.replace('$', '#3')  # prosody phrase boundary, usually with punctuations
-            txt = txt.replace('%', '#4')  # sentence boundary
-            txt_lines[file_name] = txt
-    pos_lines = {}
-    with open(pos_file) as fid:
-        all_pos_lines = [x.strip() for x in fid.readlines()]
-        for line in all_pos_lines:
-            file_name, txt = line.split('|')
-            pos_lines[file_name] = txt
-    pinyin_lines = {}
-    with open(pinyin_file) as fid:
-        all_pinyin_lines = [x.strip() for x in fid.readlines()]
-        for line in all_pinyin_lines:
-            file_name, txt = line.split('|')
-            txt = txt.replace('#', '')
-            txt = txt.replace('*', '')
-            txt = txt.replace('$', '')
-            txt = txt.replace('%', '')
-            pinyin_lines[file_name] = txt
-
-    sfs_list = [x.replace('.sfs', '') for x in os.listdir(sfs_path)]
-    sfs_list.sort()
-
-    for file_name in sfs_list:
-        try:
-            sfs_file = os.path.join(sfs_path, file_name + '.sfs')
-            out_label_file = os.path.join(output_label_path, file_name + '.lab')
-            label_line = _txt2label(txt_lines[file_name], pos_lines[file_name], pinyin_lines[file_name], sfs_file)
-            logger.info('sfs2label processing file %s' % (sfs_file))
-        except Exception as e:
-            logger.error(
-                'Error at %s, please check your txt, with error %s' % (file_name, str(e)))
-            exit(0)
-        else:
-            with open(out_label_file, 'w') as oid:
-                for item in label_line:
-                    oid.write(item + '\n')
-
-
 def _set_logger(output_path):
     formater = logging.Formatter('%(levelname)-8s: %(message)s')
     logger = logging.getLogger('mtts')
@@ -370,10 +269,10 @@ def _set_logger(output_path):
 
 def generate_label(txtfile, wav_dir_path, output_path, acoustic_model_path):
     _set_logger(output_path)
-    txtlines = _txt_preprocess(txtfile, output_path)
+    txtlines = _txts_preprocess(txtfile, output_path)
     _pre_pinyin_setting()
     _add_lab(txtlines, wav_dir_path)
-    _add_pinyin(txtlines, output_path)
+    #_add_pinyin(txtlines, output_path)
     _mfa_align(txtlines, wav_dir_path, output_path, acoustic_model_path)
     _textgrid2sfs(txtlines, output_path)
     _sfs2label(txtlines, output_path)
@@ -383,52 +282,35 @@ def generate_label(txtfile, wav_dir_path, output_path, acoustic_model_path):
     logger.info('the error log is in {}/mtts.log'.format(output_path))
 
 
-def _generate_label(txtfile, posfile, pinyinfile, textgrid_path):
-    """gen labels from sfs_file, txt_file, pos_file, pinyin_file"""
-    output_path = os.path.dirname(textgrid_path)
-    sfs_path = os.path.join(output_path, 'sfs')
-    label_path = os.path.join(output_path, 'labels')
-    _set_logger(os.path.dirname(output_path))
-    _textgrid2sfs_(textgrid_path)
-    _sfs2label_(txtfile, posfile, pinyinfile, sfs_path, label_path)
-
-    logger = logging.getLogger('mtts')
-    logger.info('the label files are in {}/labels'.format(output_path))
-    logger.info('the error log is in {}/mtts.log'.format(output_path))
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
-        description="convert mandarin_txt to label for merlin.")
+        description="convert mandarin_txt and wav to label for merlin.")
     parser.add_argument(
         "txtfile",
         help=
-        "Full path to txtfile which each line contain file_name and txt (seperated by |) "
+        "Full path to txtfile which each line contain num and txt (seperated by a white space) "
     )
     parser.add_argument(
-        "posfile",
+        "wav_dir_path",
         help=
-        "Full path to posfile which each line contain file_name and pos (seperated by |) "
+        "Full path to a wav directory contain wav (sampling frequency should larger than 16khz)"
     )
     parser.add_argument(
-        "pinyinfile",
+        "output_path",
         help=
-        "Full path to pinyinfile which each line contain file_name and pinyins (seperated by |) "
-    )
+        "Full path to output directory, will be created if it doesn't exist")
     parser.add_argument(
-        "textgridpath",
+        '-a',
+        '--acoustic_model_path',
+        type=str,
+        default='misc/thchs30.zip',
         help=
-        "Full path to textgrids which generated by montreal-alignment "
+        'Full path to acoustic model for forced aligner, default is misc/thchs30.zip'
     )
     args = parser.parse_args()
 
-    _generate_label(args.txtfile, args.posfile, args.pinyinfile, args.textgridpath)
-    # textgrid_path = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/output_align/wav'
-    # _textgrid2sfs_(textgrid_path)
-    # input_pinyin_file = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/example_hanlp_pinyin.txt'
-    # input_txt_file = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/example_hanlp_txt.txt'
-    # input_pos_file = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/example_hanlp_pos_new.txt'
-    # sfs_path = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/output_align/sfs'
-    # label_path = r'/home/shaopf/study/mTTS_frontend/data/biaobei_test/output_align/labels'
-    # _sfs2label_(input_txt_file, input_pos_file, input_pinyin_file, sfs_path, label_path)
+    os.system('mkdir -p %s' % args.output_path)
+
+    generate_label(args.txtfile, args.wav_dir_path, args.output_path,
+                   args.acoustic_model_path)
