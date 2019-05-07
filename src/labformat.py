@@ -3,8 +3,6 @@
 
 import re
 import copy
-from sys import exit
-from txt2pinyin import txt2pinyin
 from labcnp import LabNode, LabGenerator
 
 rhythm_map = ['ph', 'syl', '#0', '#1', '#3', '#4']
@@ -129,9 +127,9 @@ def add_head_middle_tail_silence(root_node, phs_type):
 
 
 def tree(words, rhythms, syllables, poses, phs_type=None):
-    assert len(words) == len(rhythms)
-    assert len(words) == len(poses)
-    assert len(''.join(words)) == len(syllables)
+    assert len(words) == len(rhythms), 'Please check the length of words, rhythms'
+    assert len(words) == len(poses), 'Please check the length of words, poses'
+    assert len(''.join(words)) == len(syllables), 'Please check the length of words, syllables'
     tree_init = {'assist': {}}
     for rhythm in rhythm_map:
         tree_init[rhythm] = []
