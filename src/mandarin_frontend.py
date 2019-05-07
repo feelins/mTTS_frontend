@@ -192,18 +192,33 @@ def _txt2label(txt, pos_txt, pinyin_txt, sfsfile=None, style='default'):
     assert style == 'default', 'Currently only default style is support in txt2label'
 
     # delete all character which is not number && alphabet && chinese word
+
+    # If txt with prosody mark, use prosody mark,
+    # else use jieba position segmetation
     tmp_txt = txt
     for pu in puncs:
         tmp_txt = tmp_txt.replace(pu, '')
-    prosody_words = re.split('#\d', tmp_txt)
-    prosody_words = [item for item in filter(lambda x: x.strip() != '', prosody_words)]
-    rhythms = re.findall('#\d', tmp_txt)
-    poses = pos_txt.split()
-    old_pinyins = pinyin_txt.split()
-    #seprate_syllable(pinyinformat(pinyin))
+    if tmp_txt.find('#') != -1:
+        words = re.split('#\d', tmp_txt)
+        words = [item for item in filter(lambda x: x.strip() != '', words)]
+        rhythms = re.findall('#\d', tmp_txt)
+        poses = pos_txt.split(' ')
+        #words, poses, rhythms = _adjust_(tmp_txt, pos_txt)
+    else:
+        txt = re.sub('[,.，。]', '#4', txt)
+        words = []
+        poses = []
+        tmplist = iter(posseg.cut(tmp_txt))
+        for word, pos in tmplist:
+            words.append(word)
+            poses.append(pos[0])
+        rhythms = ['#0'] * (len(words) - 1)
+        rhythms.append('#4')
+
     syllables = []
-    for pinyin in old_pinyins:
-        syllables.append(seprate_syllable(pinyinformat(pinyin)))
+    pinyin_list = pinyin_txt.split(' ')
+    for item in pinyin_list:
+        syllables.append(seprate_syllable(pinyinformat(item)))
 
     phone_num = 0
     for syllable in syllables:
@@ -222,7 +237,7 @@ def _txt2label(txt, pos_txt, pinyin_txt, sfsfile=None, style='default'):
     else:
         phs_type = []
         for i, rhythm in enumerate(rhythms):
-            single_word_pinyin = txt2pinyin(prosody_words[i])
+            single_word_pinyin = txt2pinyin(words[i])
             single_word_phone_num = sum(
                 [len(syllable) for syllable in single_word_pinyin])
             phs_type.extend(['a'] * single_word_phone_num)
@@ -246,37 +261,8 @@ def _txt2label(txt, pos_txt, pinyin_txt, sfsfile=None, style='default'):
     print ('times: ', times)
     '''
 
-    phone = tree(prosody_words, rhythms, syllables, poses, phs_type)
+    phone = tree(words, rhythms, syllables, poses, phs_type)
     return LabGenerator(phone, rhythms, times)
-
-
-def _txt_preprocess(txtfile, output_path):
-    # 去除所有标点符号(除非是韵律标注#1符号)，报错，如果txt中含有数字和字母(报错并跳过）
-    # 补充标点符号
-    puncs = ['”', '。', '，', '、', '？', '：', '！', '…', '—', '）', '；', '’', '!', ',', '.', ':', ';', '“', '（', '‘']
-    with open(txtfile) as fid:
-        txtlines = [x.strip() for x in fid.readlines()]
-    valid_txtlines = []
-    error_list = []  # line which contain number or alphabet
-    for line in txtlines:
-        num, txt = line.split(' ', 1)
-        if bool(re.search('[A-Za-z]', txt)) or bool(
-                re.search('(?<!#)\d', txt)):
-            error_list.append(num)
-        else:
-            tmp_txt = txt
-            for pu in puncs:
-                tmp_txt = tmp_txt.replace(pu, '')
-            # 去除除了韵律标注'#'之外的所有非中文文本, 数字, 英文字符符号
-            valid_txtlines.append(num + ' ' + tmp_txt)
-    if error_list:
-        for item in error_list:
-            print('line %s contain number and alphabet!!' % item)
-        with open(os.path.join(output_path, 'error.log'), 'a+') as fid:
-            for item in error_list:
-                fid.write('line %s contain number and alphabet!!  \n' % item)
-    print(valid_txtlines)
-    return valid_txtlines
 
 
 if __name__ == '__main__':
