@@ -199,7 +199,7 @@ def _txt2label(txt, pos_txt, pinyin_txt, sfsfile=None, style='default'):
     for pu in puncs:
         tmp_txt = tmp_txt.replace(pu, '')
     if tmp_txt.find('#') != -1:
-        words = re.split('#\d', tmp_txt)
+        words = re.split('#\d', tmp_txt.decode("utf-8")) # decode when use shell
         words = [item for item in filter(lambda x: x.strip() != '', words)]
         rhythms = re.findall('#\d', tmp_txt)
         poses = pos_txt.split(' ')
@@ -260,7 +260,6 @@ def _txt2label(txt, pos_txt, pinyin_txt, sfsfile=None, style='default'):
     print ('phs_type: ', phs_type)
     print ('times: ', times)
     '''
-
     phone = tree(words, rhythms, syllables, poses, phs_type)
     return LabGenerator(phone, rhythms, times)
 
