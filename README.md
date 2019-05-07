@@ -5,13 +5,20 @@
 Mandarin/Chinese Text to Speech based on statistical parametric speech 
 synthesis using merlin toolkit
 
-这只是一个语音合成前端的Demo，没有提供文本正则化，韵律预测功能，文字转拼音使用pypinyin，分词使用结巴分词，这两者的准确度也达不到商用水平。
-
-欢迎加入语音合成技术交流QQ群：882726654
-
-其他语音合成项目[传送门](https://github.com/topics/text-to-speech)，端到端是不错的方向，自然度要优于merlin。
-
+这是一个语音合成前端的生成模块，
+第一种方案，没有提供文本正则化，韵律预测功能，文字转拼音使用pypinyin，分词使用结巴分词，这两者的准确度也达不到商用水平；
 This is only a demo of mandarin frontend which is lack of some parts like "text normalization" and "prosody prediction", and the phone set && Question Set this project use havn't fully tested yet.
+第二种方案，经过一些辅助手段，提供了文本的韵律结果，以及校对正确的拼音结果，在这样的结果之上，整个项目分三部分执行，
+This need to use the prosody result.
+    (1)生成montreal alignment需要的label和词典；
+    gen label for montreal alignment
+    (2)完成montreal alignment过程，这个过程需要自训练模型；
+    run montreal alignment
+    (3)完成montreal的结果TextGrid生成label的过程；
+    gen label for merlin from montreal results
+第三种方案，只由韵律结果，生成label，用于合成系统的合成阶段；
+This only used to gen label from txt.
+
 
 一个粗略的文档：A draft [documentation](http://mtts.readthedocs.io/zh_CN/latest/#) written in Mandarin
 
@@ -35,8 +42,8 @@ Listen to  https://jackiexiao.github.io/MTTS/
 3. Using [merlin/egs/mandarin_voice](https://github.com/CSTR-Edinburgh/merlin/tree/master/egs/mandarin_voice) to train and generate Mandarin Voice
 
 ## Context related annotation & Question Set
-* [Context related annotation上下文相关标注](https://github.com/Jackiexiao/MTTS/blob/master/misc/mandarin_label.md)
-* [Question Set问题集](https://github.com/Jackiexiao/MTTS/blob/master/misc/questions-mandarin.hed)
+* [Context related annotation上下文相关标注](https://github.com/feelins/mTTS_frontend/blob/master/misc/mandarin_label.md)
+* [Question Set问题集](https://github.com/feelins/mTTS_frontend/blob/master/misc/questions-mandarin.hed)
 * [Rules to design a Question Set问题集设计规则](https://github.com/Jackiexiao/MTTS/blob/master/docs/mddocs/question.md)
 
 ## Install
@@ -52,10 +59,23 @@ Run `bash tools/install_mtts.sh`
 * Download acoustic_model
 [thchs30.zip](https://github.com/Jackiexiao/MTTS/releases/download/v0.1/thchs30.zip) and copy to directory misc/  
 
-**Run Demo**
+**Scheme 1: Run Demo**
 ```
 bash run_demo.sh
 ```
+
+**Scheme 2: Run with three processes**
+```
+bash run_gen_montreal_label.sh
+bash run_montreal_align.sh
+bash run_gen_labels.sh
+```
+
+**Scheme 3: Run only the gen label process**
+```
+bash run_gen_labels.sh
+```
+
 ## Usage
 ### 1. Generate HTS Label by wav and text
 * Usage: Run `python src/mtts.py txtfile wav_directory_path output_directory_path` (Absolute path or relative path) Then you will get HTS label, if you have your own acoustic model trained by monthreal-forced-aligner, add`-a your_acoustic_model.zip`, otherwise, this project use thchs30.zip acoustic model as default
