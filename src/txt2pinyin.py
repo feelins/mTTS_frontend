@@ -100,7 +100,7 @@ def txt2pinyin(txt):
     return phone_list
 
 if __name__ == '__main__':
-	print(txt2pinyin('向#1香港#2特别行政区#1同胞#3澳门台湾#1同胞'))
+    print(txt2pinyin('向#1香港#2特别行政区#1同胞#3澳门台湾#1同胞'))
 
 
 
