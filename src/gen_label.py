@@ -278,23 +278,39 @@ def _sfs2label_(txt_file, pos_file, pinyin_file, sfs_path, output_label_path):
             txt = txt.replace('%', '')
             pinyin_lines[file_name] = txt
 
-    sfs_list = [x.replace('.sfs', '') for x in os.listdir(sfs_path)]
-    sfs_list.sort()
+    if sfs_path:
+        sfs_list = [x.replace('.sfs', '') for x in os.listdir(sfs_path)]
+        sfs_list.sort()
 
-    for file_name in sfs_list:
-        try:
-            sfs_file = os.path.join(sfs_path, file_name + '.sfs')
-            out_label_file = os.path.join(output_label_path, file_name + '.lab')
-            label_line = _txt2label(txt_lines[file_name], pos_lines[file_name], pinyin_lines[file_name], sfs_file)
-            logger.info('sfs2label processing file %s' % (sfs_file))
-        except Exception as e:
-            logger.error(
-                'Error at %s, please check your txt, with error %s' % (file_name, str(e)))
-            exit(0)
-        else:
-            with open(out_label_file, 'w') as oid:
-                for item in label_line:
-                    oid.write(item + '\n')
+        for file_name in sfs_list:
+            try:
+                sfs_file = os.path.join(sfs_path, file_name + '.sfs')
+                out_label_file = os.path.join(output_label_path, file_name + '.lab')
+                label_line = _txt2label(txt_lines[file_name], pos_lines[file_name], pinyin_lines[file_name], sfs_file)
+                logger.info('sfs2label processing file %s' % (sfs_file))
+            except Exception as e:
+                logger.error(
+                    'Error at %s, please check your txt, with error %s' % (file_name, str(e)))
+                exit(0)
+            else:
+                with open(out_label_file, 'w') as oid:
+                    for item in label_line:
+                        oid.write(item + '\n')
+    else:
+        for k, v in txt_lines.items():
+            file_name = str(k)
+            try:
+                out_label_file = os.path.join(output_label_path, file_name + '.lab')
+                label_line = _txt2label(txt_lines[file_name], pos_lines[file_name], pinyin_lines[file_name])
+                logger.info('sfs2label processing file %s' % (file_name))
+            except Exception as e:
+                logger.error(
+                    'Error at %s, please check your txt, with error %s' % (file_name, str(e)))
+                exit(0)
+            else:
+                with open(out_label_file, 'w') as oid:
+                    for item in label_line:
+                        oid.write(item + '\n')
 
 
 def _set_logger(output_path):
@@ -320,12 +336,19 @@ def _set_logger(output_path):
 
 def _generate_label(txtfile, posfile, pinyinfile, textgrid_path):
     """gen labels from sfs_file, txt_file, pos_file, pinyin_file"""
-    output_path = os.path.dirname(textgrid_path)
-    sfs_path = os.path.join(output_path, 'sfs')
-    label_path = os.path.join(output_path, 'labels')
-    _set_logger(os.path.dirname(output_path))
-    _textgrid2sfs_(textgrid_path)
-    _sfs2label_(txtfile, posfile, pinyinfile, sfs_path, label_path)
+    if os.path.exists(textgrid_path):
+        output_path = os.path.dirname(textgrid_path)
+        sfs_path = os.path.join(output_path, 'sfs')
+        label_path = os.path.join(output_path, 'labels')
+        _set_logger(os.path.dirname(output_path))
+        _textgrid2sfs_(textgrid_path)
+        _sfs2label_(txtfile, posfile, pinyinfile, sfs_path, label_path)
+    else:
+        output_path = os.path.join(os.path.dirname(txtfile), 'output')
+        sfs_path = None
+        label_path = os.path.join(output_path, 'labels')
+        _set_logger(os.path.dirname(output_path))
+        _sfs2label_(txtfile, posfile, pinyinfile, sfs_path, label_path)
 
     logger = logging.getLogger('mtts')
     logger.info('the label files are in {}/labels'.format(output_path))
