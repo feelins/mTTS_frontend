@@ -1,23 +1,23 @@
-[![Build Status](https://travis-ci.org/Jackiexiao/MTTS.svg?branch=dev)](https://travis-ci.org/Jackiexiao/MTTS)
-<!--[![Coverage Status](https://coveralls.io/repos/github/Jackiexiao/MTTS/badge.svg?branch=master)](https://coveralls.io/github/Jackiexiao/MTTS?branch=master)-->
-# A Demo of MTTS Mandarin/Chinese Text to Speech FrontEnd
+[![Build Status](https://travis-ci.org/feelins/mTTS_frontend.svg?branch=dev)](https://travis-ci.org/feelins/mTTS_frontend)
+<!--[![Coverage Status](https://coveralls.io/repos/github/feelins/mTTS_frontend/badge.svg?branch=master)](https://coveralls.io/github/feelins/mTTS_frontend?branch=master)-->
+# A Demo of multi-language mTTS frontend Text to Speech FrontEnd
 
-Mandarin/Chinese Text to Speech based on statistical parametric speech 
-synthesis using merlin toolkit
+Mandarin/Chinese Text to Speech based on statistical parametric speech  
+synthesis using merlin toolkit  
 
-这是一个语音合成前端的生成模块，
-第一种方案，没有提供文本正则化，韵律预测功能，文字转拼音使用pypinyin，分词使用结巴分词，这两者的准确度也达不到商用水平；
-This is only a demo of mandarin frontend which is lack of some parts like "text normalization" and "prosody prediction", and the phone set && Question Set this project use havn't fully tested yet.
-第二种方案，经过一些辅助手段，提供了文本的韵律结果，以及校对正确的拼音结果，在这样的结果之上，整个项目分三部分执行，
-This need to use the prosody result.
-    (1)生成montreal alignment需要的label和词典；
-    gen label for montreal alignment
-    (2)完成montreal alignment过程，这个过程需要自训练模型；
-    run montreal alignment
-    (3)完成montreal的结果TextGrid生成label的过程；
-    gen label for merlin from montreal results
-第三种方案，只由韵律结果，生成label，用于合成系统的合成阶段；
-This only used to gen label from txt.
+这是一个语音合成前端的生成模块，  
+第一种方案，没有提供文本正则化，韵律预测功能，文字转拼音使用pypinyin，分词使用结巴分词，这两者的准确度也达不到商用水平；  
+This is only a demo of mandarin frontend which is lack of some parts like "text normalization" and "prosody prediction", and the phone set && Question Set this project use havn't fully tested yet.  
+第二种方案，经过一些辅助手段，提供了文本的韵律结果，以及校对正确的拼音结果，在这样的结果之上，整个项目分三部分执行，  
+This need to use the prosody result.  
+    (1)生成montreal alignment需要的label和词典；  
+    gen label for montreal alignment  
+    (2)完成montreal alignment过程，这个过程需要自训练模型；  
+    run montreal alignment  
+    (3)完成montreal的结果TextGrid生成label的过程；  
+    gen label for merlin from montreal results  
+第三种方案，只由韵律结果，生成label，用于合成系统的合成阶段；  
+This only used to gen label from txt.  
 
 
 一个粗略的文档：A draft [documentation](http://mtts.readthedocs.io/zh_CN/latest/#) written in Mandarin
