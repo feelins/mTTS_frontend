@@ -9,6 +9,7 @@
 @function： 利用pypinyin，jieba生成汉字普通话拼音，分词，词性文件
 """
 from pypinyin import pinyin, Style
+from seperate_pinyin import pinyinformat
 from jieba import posseg
 from language_util import _PUNCS
 import os
@@ -31,13 +32,13 @@ def txt2result(_txt):
         words.append(word)
         poses.append(pos[0])
         result_pypinyin = pinyin(word, style=Style.TONE3)
-        pinyins.append(' '.join([item[0] for item in result_pypinyin]))
+        pinyins.append(' '.join([pinyinformat(item[0]) for item in result_pypinyin]))
 
     return words, poses, pinyins
 
 
 def save_result(_results, _save_dir, _save_filename, _str):
-    """Save result"""
+    """Save result seperately"""
     save_file = os.path.join(_save_dir, _save_filename + '_' + _str + '.txt')
     with open(save_file, 'w') as wid:
         wid.writelines(_results)
