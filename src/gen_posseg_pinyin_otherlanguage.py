@@ -9,6 +9,7 @@
 @function： 其它无前端语言，根据发音词典生成，分词仍然利用jieba
 """
 from jieba import posseg
+from seperate_pinyin import pinyinformat
 from language_util import _PUNCS
 import os
 import re
@@ -26,22 +27,22 @@ def init_dict(_dict_file):
     return dicts
 
 
-def gen_phons(_dicts, _word):
+def gen_phons(_dicts, _word, lang):
     """Return the phone of a given word"""
     phon_result = []
     if _word in _dicts:
-        phon_result.append(_dicts[_word])
+        phon_result.append(pinyinformat(_dicts[_word], lang))
     else:
         for i in range(len(_word)):
             if _word[i] in _dicts:
-                phon_result.append(_dicts[_word[i]])
+                phon_result.append(pinyinformat(_dicts[_word[i]], lang))
             else:
                 phon_result.append('NULL')
 
     return phon_result
 
 
-def txt2result(_txt, _dicts):
+def txt2result(_txt, _dicts, lang):
     """Return a list of words, segs and pinyins of txt.
     _txt: input sentence
     """
@@ -56,7 +57,7 @@ def txt2result(_txt, _dicts):
     for word, pos in result_jieba:
         words.append(word)
         poses.append(pos[0])
-        result_pypinyin = gen_phons(_dicts, word)
+        result_pypinyin = gen_phons(_dicts, word, lang)
         pinyins.append(' '.join([item for item in result_pypinyin]))
 
     return words, poses, pinyins
@@ -69,7 +70,7 @@ def save_result(_results, _save_dir, _save_filename, _str):
         wid.writelines(_results)
 
 
-def gen_result(_in_file, _dict_file):
+def gen_result(_in_file, _dict_file, lang):
     """Return all results for a txt file.
     _in_file: input txt file
     """
@@ -86,7 +87,7 @@ def gen_result(_in_file, _dict_file):
     for line in txt_lines:
         print('processing: ', line)
         file_name, txt = re.split(' |\||\t', line, 1)
-        tmp_words, tmp_poses, tmp_pinyins = txt2result(txt, gen_dicts)
+        tmp_words, tmp_poses, tmp_pinyins = txt2result(txt, gen_dicts, lang)
         results_words.append(file_name + '|' + '/'.join(tmp_words) + '\n')
         results_poses.append(file_name + '|' + '/'.join(tmp_poses) + '\n')
         results_pinyins.append(file_name + '|' + '/'.join(tmp_pinyins) + '\n')
@@ -97,20 +98,13 @@ def gen_result(_in_file, _dict_file):
 
 
 if __name__ == '__main__':
-    # import argparse
-    # parser = argparse.ArgumentParser(
-    #     description="gen pos, seg, pinyin for mandarin_txt.")
-    # parser.add_argument(
-    #     "txtfile",
-    #     help=
-    #     "Full path to txtfile which each line contain file_name and txt (seperated by | or [blank] or tab) "
-    # )
-    # args = parser.parse_args()
-    #
-    # gen_result(args.txtfile)
-    ##################################################################################
+    """supported languages:
+        mandarin
+        cantonese
+        shanghai
+        """
     input_txt_file = r'/home/shaopf/study/mTTS_frontend/example_file/cantonese_script.txt'
     dict_file = r'/home/shaopf/study/mTTS_frontend/misc/cantonese_dict.txt'
-    gen_result(input_txt_file, dict_file)
+    gen_result(input_txt_file, dict_file, 'cantonese')
     print('Done!')
 
