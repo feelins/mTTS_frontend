@@ -24,9 +24,8 @@ class LabNode(object):
         self.rhythm = rhythm
         self.index = index
         self.pos = pos
-        if (sons):
+        if sons:
             self._set_sons()
-        #print('add a new node of : {}'.format(txt))
 
     def _set_sons(self):
         """设置son的father为自己，统计sons的个数，根据son更新自己的txt"""
@@ -39,14 +38,14 @@ class LabNode(object):
 
 Lab = ['t', 'p', 'a', 'b', 'c', 'd', 'e', 'f']
 
-formation=[
-    ' ', ' ', 
-    '^', '-', '+', '=', '@', '@/A:', 
-    '-', '^', '@/B:', 
-    '+', '@', '^', '^', '+', '#', '-', '-/C:', 
-    '_', '^', '#', '+', '+', '&/D:', 
-    '=', '!', '@', '-', '&/E:', 
-    '|', '-', '@', '#', '&', '!', '-', '#/F:', 
+formation = [
+    ' ', ' ',
+    '^', '-', '+', '=', '@', '@/A:',
+    '-', '^', '@/B:',
+    '+', '@', '^', '^', '+', '#', '-', '-/C:',
+    '_', '^', '#', '+', '+', '&/D:',
+    '=', '!', '@', '-', '&/E:',
+    '|', '-', '@', '#', '&', '!', '-', '#/F:',
     '^', '=', '_', '-', '!']
 
 class LabGenerator(object):
@@ -105,7 +104,7 @@ class LabGenerator(object):
                 self.adict['p'][4] = self.phone.rbrother.rbrother.txt
         
         if self.phone.father:
-            self.adict['p'][5] = self.phone.father.sons[-1].txt.rstrip('12345')
+            self.adict['p'][5] = self.phone.father.sons[-1].txt.rstrip('1234567890')
 
     def a(self):
         """
@@ -252,6 +251,7 @@ class LabGenerator(object):
         father = self.phone.father
         if father:
             # 句子层
+            self.adict['f'][0] = 'xx'
             gfather = father.father.father.father.father.father
             #self.adict['f'][1]=str(len(gfather.txt))
             self.adict['f'][1] = str(len(gfather.txt))
