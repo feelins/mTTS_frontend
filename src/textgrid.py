@@ -25,6 +25,7 @@
 #!/usr/bin/python
 
 from collections import namedtuple
+from language_util import _SILENCE
 
 Entry = namedtuple("Entry", ["start",
                              "stop",
@@ -54,19 +55,25 @@ def read_textgrid(filename):
     interval_lines = [i for i, line in enumerate(content)
                       if line.startswith("intervals [")
                       or line.startswith("points [")]
-#    tier_lines, tiers =  [(i, line.split('"')[-2]) 
-#            for i, line in enumerate(content)
-#            if line.startswith("name =")]
     tier_lines = []
     tiers = []
     for i, line in enumerate(content):
         if line.startswith("name ="):
             tier_lines.append(i)
-            tiers.append(line.split('"')[-2]) 
+            tiers.append(line.split('"')[-2])
+
+    for i, line in enumerate(content):
+        if line.startswith("xmax = "):
+            time_array = line.split()
+            time_array = [item for item in filter(lambda x: x.strip() != '', time_array)]
+            duration = float(time_array[-1])
+            break
 
     interval_tiers = _find_tiers(interval_lines, tier_lines, tiers)
     assert len(interval_lines) == len(interval_tiers)
-    return [_build_entry(i, content, t) for i, t in zip(interval_lines, interval_tiers)]
+    adjust_list = _adjust_Entry([_build_entry(i, content, t) for i, t in zip(interval_lines, interval_tiers)
+            if t == "phones"], duration)
+    return adjust_list
 
 
 def _find_tiers(interval_lines, tier_lines, tiers):
@@ -87,6 +94,43 @@ def _read(f):
     return [x.strip() for x in f.readlines()]
 
 
+def _adjust_Entry(textgrid_list, _duration):
+    """adjust the textgrid_list, expecially the start and end:
+    Start:
+        label[0]=="" and lable[1]=="sp"  -----   merge, label[0]=="sil"
+        label[0]<>"" and label[0]<>"sp"  -----   add, label[0]==”sil"
+        label[0]=="" and label[1]<>"sp"  -----   change, label[0]=="sil"
+        #label[0]=="sp" and label[1]<>"sp"-----   change, label[0]=="sil"
+    End:
+        label[-1]=="" and lable[-2]=="sp"  -----   merge, label[-1]=="sil"
+        label[-1]<>"" and label[-1]<>"sp"  -----   add, label[-1]==”sil"
+        label[-1]=="" and label[-2]<>"sp"  -----   change, label[-1]=="sil"
+        #label[-1]=="sp" and label[-2]<>"sp"-----   change, label[-1]=="sil"
+    """
+    textgrid_list_new = textgrid_list
+    if len(textgrid_list_new) > 1:
+        if textgrid_list_new[0].name == "" and textgrid_list_new[1].name in _SILENCE:
+            textgrid_list_new[1] = textgrid_list_new[1]._replace(name="sil")._replace(start=0)
+            textgrid_list_new.pop(0)
+        if textgrid_list_new[0].name != "" and textgrid_list_new[0].name not in _SILENCE:
+            textgrid_list_new.insert(0, Entry(start=0, stop=0.001, name="sil", tier="phones"))
+            textgrid_list_new[1] = textgrid_list_new[1]._replace(start=0.001)
+        if textgrid_list_new[0].name in ["", "sp"] and textgrid_list_new[1].name not in _SILENCE and textgrid_list_new[1].name != "":
+            textgrid_list_new[0] = textgrid_list_new[0]._replace(name="sil")
+
+        if textgrid_list_new[-1].name == "" and textgrid_list_new[-2].name in _SILENCE:
+            textgrid_list_new[-2] = textgrid_list_new[-2]._replace(name="sil")._replace(stop=_duration)
+            textgrid_list_new.pop()
+        if textgrid_list_new[-1].name != "" and textgrid_list_new[-1].name not in _SILENCE:
+            tmp_time = textgrid_list_new[-1].stop - 0.001
+            textgrid_list_new.append(Entry(start=tmp_time, stop=_duration, name="sil", tier="phones"))
+            textgrid_list_new[-2] = textgrid_list_new[-2]._replace(stop=tmp_time)
+        if textgrid_list_new[-1].name in ["", "sp"] and textgrid_list_new[-2].name not in _SILENCE and textgrid_list_new[-2].name != "":
+            textgrid_list_new[-1] = textgrid_list_new[-1]._replace(name="sil")
+    return textgrid_list_new
+
+
+
 def write_csv(textgrid_list, filename=None, sep=",", header=True, save_gaps=False, meta=True):
     """
     Writes a list of textgrid dictionaries to a csv file.
@@ -102,17 +146,17 @@ def write_csv(textgrid_list, filename=None, sep=",", header=True, save_gaps=Fals
         else:
             print(hline)
     for entry in textgrid_list:
-        if entry.name or save_gaps:  # skip unlabeled intervals
-            row = sep.join(str(x) for x in list(entry))
-            if filename:
-                f.write(row + "\n")
-            else:
-                print(row)
-        # row = sep.join(str(x) for x in list(entry))
-        # if filename:
-        #     f.write(row + "\n")
-        # else:
-        #     print(row)
+        # if entry.name or save_gaps:  # skip unlabeled intervals
+        #     row = sep.join(str(x) for x in list(entry))
+        #     if filename:
+        #         f.write(row + "\n")
+        #     else:
+        #         print(row)
+        row = sep.join(str(x) for x in list(entry))
+        if filename:
+            f.write(row + "\n")
+        else:
+            print(row)
     if filename:
         f.flush()
         f.close()
