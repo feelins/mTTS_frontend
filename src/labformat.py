@@ -4,6 +4,10 @@
 import re
 import copy
 from labcnp import LabNode, LabGenerator
+import sys
+from language_util import _SILENCE
+
+sys.setrecursionlimit(5000)  # used for long sentence not more than 200 syllables
 
 rhythm_map = ['ph', 'syl', '#0', '#1', '#3', '#4']
 
@@ -12,7 +16,10 @@ def tree_per_word(word, cur_rhythm, tree_init, syllables, poses):
     def get_list(rhythm):
         return tree_init[rhythm]
 
-    assert cur_rhythm in rhythm_map
+    if cur_rhythm not in rhythm_map:
+        print(cur_rhythm + ' not in ' + str(rhythm_map))
+        exit(0)
+    #assert cur_rhythm in rhythm_map
     current_rhythm_list = get_list(cur_rhythm)
 
     if cur_rhythm == 'ph':
@@ -104,32 +111,32 @@ def add_head_middle_tail_silence(root_node, phs_type):
         fphone.lbrother = newNode
         fphone = newNode
     phone = fphone
-    assert phone is not None
+    #assert phone is not None, 'can not find any phone here'
     for ptype in phs_type[1:-1]:
-        if ptype in ['s', 'd']:
-            if ptype == 's':
-                newNode = LabNode(txt='pau', rhythm='ph')
-            else:
-                newNode = LabNode(txt='sp', rhythm='ph')
+
+        if ptype in _SILENCE:
+            # used to distinguish big or small pause between sentence
+            # if ptype == 's':
+            #     newNode = LabNode(txt='pau', rhythm='ph')
+            # else:
+            #     newNode = LabNode(txt='sp', rhythm='ph')
+            newNode = LabNode(txt='sp', rhythm='ph')
             newNode.rbrother = phone.rbrother
             newNode.lbrother = phone
             phone.rbrother = newNode
             newNode.rbrother.lbrother = newNode
             phone = newNode
+            #print(phone.txt + ',' + ptype + 'silence')
         else:
-            assert phone is not None
             phone = phone.rbrother
-    assert phone is not None
-    if phs_type[-1] in ['s', 'd']:
+            #print(phone.txt + ',' + ptype + 'normal')
+    if phs_type[-1] == 's':
         phone.rbrother = LabNode(txt='sil', rhythm='ph')
         phone.rbrother.lbrother = phone
     return fphone
 
 
 def tree(words, rhythms, syllables, poses, phs_type=None):
-    assert len(words) == len(rhythms), 'Please check the length of words, rhythms'
-    assert len(words) == len(poses), 'Please check the length of words, poses'
-    assert len(''.join(words)) == len(syllables), 'Please check the length of words, syllables'
     tree_init = {'assist': {}}
     for rhythm in rhythm_map:
         tree_init[rhythm] = []
@@ -146,9 +153,9 @@ def tree(words, rhythms, syllables, poses, phs_type=None):
         newNode.adjust()
     """
 
-    #print('----show tree----')
-    #show([newNode], 0)
-    #show(tree_init['rhythm4'], 0)
+    # print('----show tree----')
+    # show([newNode], 0)
+    # show(tree_init['#4'], 0)
 
     root_node = tree_init['#4'][0]
     return add_head_middle_tail_silence(root_node, phs_type)
